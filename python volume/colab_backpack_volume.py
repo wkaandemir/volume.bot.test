@@ -10,8 +10,8 @@ import requests
 API_KEY = "JoNTFQpe+KuTrT2GARWHEwgjpLHdNQK3B8tmnhB9+/c="
 API_SECRET = "xp6eoV78koBNc5WdQMZ+neEp2bJLevVPwDGYSJ5DuMo="
 
-API_KEY = input("API Key girin: ")
-API_SECRET = input("API Secret girin: ")
+'''API_KEY = input("API Key girin: ")
+API_SECRET = input("API Secret girin: ")'''
 
 MARKET_SYMBOL = 'WEN_USDC'
 
@@ -172,6 +172,9 @@ if __name__ == '__main__':
         if çıkış_gerekli:
             break
 
+
+        toplam_bakiye = usdc_bakiyesini_al()
+        print(datetime.datetime.now(), 'Toplam Bakiye', toplam_bakiye, '(USDC)')
 
     if emirleri_al(MARKET_SYMBOL):
         emirleri_iptal_et(MARKET_SYMBOL)
