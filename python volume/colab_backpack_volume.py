@@ -5,13 +5,15 @@ import random
 import time
 from cryptography.hazmat.primitives.asymmetric import ed25519
 import requests
-import config
 
-API_KEY = config.api_key
-API_SECRET = config.api_secret
 
-MARKET_SYMBOL = 'SOL_USDC'
-EVERY_SWAP_AMOUNT = 0.4
+API_KEY = "JoNTFQpe+KuTrT2GARWHEwgjpLHdNQK3B8tmnhB9+/c="
+API_SECRET = "xp6eoV78koBNc5WdQMZ+neEp2bJLevVPwDGYSJ5DuMo="
+
+API_KEY = input("API Key girin: ")
+API_SECRET = input("API Secret girin: ")
+
+MARKET_SYMBOL = 'WEN_USDC'
 
 
 def erişim_imzası(operate_method, argument, timetick, window_value):
@@ -64,6 +66,25 @@ def erişim_oluştur(http_method, operate_method, path, argument):
         resp = requests.delete(url, headers=headers, timeout=window_value, json=argument)
         return resp.text
 
+
+def yeni_fiyat_al():
+    fiyat_geçmişi = json.loads(erişim_oluştur('get', '', 'api/v1/klines', {'symbol': MARKET_SYMBOL, 'interval': '1m'}))
+    fiyat = float(fiyat_geçmişi[-1]['close'])
+    return fiyat
+
+
+def varlık_al():
+    return json.loads(erişim_oluştur('get', 'balanceQuery', 'api/v1/capital', {}))
+
+def depozit_adresi_al(blockchain):
+    return erişim_oluştur('get', 'depositAddressQuery', 'wapi/v1/capital/deposit/address', {'blockchain': blockchain})
+
+def emirleri_al(semboller):
+    return json.loads(erişim_oluştur('get', 'orderQueryAll', 'api/v1/orders', {'symbol': semboller}))
+
+def emirleri_iptal_et(sem):
+    return erişim_oluştur('delete', 'orderCancelAll', 'api/v1/orders', {'symbol': sem})
+
 def emir_yürüt(sem, fiyat, miktar, al_sat):
     if al_sat:
         side_type = 'Bid'
@@ -82,35 +103,18 @@ def emir_yürüt(sem, fiyat, miktar, al_sat):
         raise
     return json.loads()
 
-def sembol_al():
-    return json.loads(erişim_oluştur('get', '', 'api/v1/markets', {}))
 
-def yeni_fiyat_al():
-    fiyat_geçmişi = json.loads(erişim_oluştur('get', '', 'api/v1/klines', {'symbol': MARKET_SYMBOL, 'interval': '1m'}))
-    fiyat = float(fiyat_geçmişi[-1]['close'])
-    return fiyat
+def usdcden_wen_hesapla(fiyat, usdc_miktarı):
+    wen_miktarı = ((usdc_miktarı / fiyat) * 0.99)
+    return wen_miktarı
 
-def varlık_al():
-    return json.loads(erişim_oluştur('get', 'balanceQuery', 'api/v1/capital', {}))
-
-def emirleri_al(semboller):
-    return json.loads(erişim_oluştur('get', 'orderQueryAll', 'api/v1/orders', {'symbol': semboller}))
-
-def emirleri_iptal_et(sem):
-    return erişim_oluştur('delete', 'orderCancelAll', 'api/v1/orders', {'symbol': sem})
-
-
-def usdcden_sol_hesapla(fiyat, usdc_miktarı):
-    sol_miktarı = round((usdc_miktarı / fiyat) * 0.99, 2)
-    return sol_miktarı
-
-def sol_bakiyesini_al():
+def wen_bakiyesini_al():
     bakiye_listesi = varlık_al()
-    sol_bilgi = bakiye_listesi.get('SOL', {})
-    print(sol_bilgi)
-    sol_bakiye = float(sol_bilgi.get('available', 0)) + float(sol_bilgi.get('locked', 0))
+    wen_bilgi = bakiye_listesi.get('WEN', {})
+    print(wen_bilgi)
+    wen_bakiye = float(wen_bilgi.get('available', 0)) + float(wen_bilgi.get('locked', 0))
 
-    return sol_bakiye
+    return wen_bakiye
 
 def usdc_bakiyesini_al():
     bakiye_listesi = varlık_al()
@@ -119,50 +123,49 @@ def usdc_bakiyesini_al():
 
     return usdc_bakiye
 
-def toplam_sol_bakiyesini_al():
+def toplam_wen_bakiyesini_al():
     bakiye_listesi = varlık_al()
     usdc_bilgi = bakiye_listesi.get('USDC', {})
     usdc_bakiye = float(usdc_bilgi.get('available', 0)) + float(usdc_bilgi.get('locked', 0))
     fiyat = yeni_fiyat_al()
-    sol_bilgi = bakiye_listesi.get('SOL', {})
-    sol_bakiye = float(sol_bilgi.get('available', 0)) + float(sol_bilgi.get('locked', 0)) + usdcden_sol_hesapla(fiyat, usdc_bakiye)
+    wen_bilgi = bakiye_listesi.get('WEN', {})
+    wen_bakiye = float(wen_bilgi.get('available', 0)) + float(wen_bilgi.get('locked', 0)) + usdcden_wen_hesapla(fiyat, usdc_bakiye)
 
-    return sol_bakiye
+    return wen_bakiye
 
-def tüm_sol_satın_al():
+def tüm_wen_satın_al():
     usdc_bakiyesi = usdc_bakiyesini_al()
-    if usdc_bakiyesi > 1:  # Çünkü sol kalmadı, tüm usdc'yi sol'a çevirmemiz gerekiyor
+
+    if usdc_bakiyesi > 1:  # Çünkü wen kalmadı, tüm usdc'yi wen'a çevirmemiz gerekiyor
         fiyat = yeni_fiyat_al()
-        sol_alma_miktarı = usdcden_sol_hesapla(fiyat, usdc_bakiyesi)
-        print(emir_yürüt(MARKET_SYMBOL, fiyat, sol_alma_miktarı, True))
+        wen_alma_miktarı = usdcden_wen_hesapla(fiyat, usdc_bakiyesi)
+        print(emir_yürüt(MARKET_SYMBOL, fiyat, wen_alma_miktarı, True))
 
 if __name__ == '__main__':
-    toplam_bakiye = toplam_sol_bakiyesini_al()
+    toplam_bakiye = toplam_wen_bakiyesini_al()
     çıkış_gerekli = False
 
-    while toplam_bakiye >= 0.1:   # Toplam varlık 0.1 sol'dan azsa işlem yapmayı durdur
+    while toplam_bakiye >= 0.1:   # Toplam varlık 0.1 wen'dan azsa işlem yapmayı durdur
         for index in range(10):
-            try:  # Sol satıp usdc almayı dene
+            try:  # wen satıp usdc almayı dene
                 fiyat = yeni_fiyat_al()
-                print(datetime.datetime.now(), fiyat, 'Al')
-                miktar = round(random.uniform(0.1, EVERY_SWAP_AMOUNT), 2)
+                toplam_bakiye = toplam_wen_bakiyesini_al()
+                min_miktar = toplam_bakiye * 0.25
+                max_miktar = toplam_bakiye * 0.30
+                miktar = round(random.uniform(min_miktar, max_miktar))
                 print(emir_yürüt(MARKET_SYMBOL, fiyat, miktar, False))
-            except:  # Sol kalmadı
-                print(datetime.datetime.now(), 'Emir İptal Edildi')
+            except:  # wen kalmadı
                 emirleri_iptal_et(MARKET_SYMBOL)
-
                 try:
-                    print(datetime.datetime.now(), 'Sol Al')
-                    tüm_sol_satın_al()
-
-
+                    print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'Alındı')
+                    tüm_wen_satın_al()
                     continue
                 except:
                     pass
             try:
                 fiyat = yeni_fiyat_al()
-                print(datetime.datetime.now(), fiyat, 'Sat')
-                miktar = round(random.uniform(0.1, EVERY_SWAP_AMOUNT), 2)
+                print(datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'Satıldı')
+                miktar = round(random.uniform(min_miktar, max_miktar))
                 print(emir_yürüt(MARKET_SYMBOL, fiyat, miktar, True))
             except:
                 pass
@@ -170,10 +173,7 @@ if __name__ == '__main__':
             break
 
 
-        toplam_bakiye = toplam_sol_bakiyesini_al()
-        print(datetime.datetime.now(), 'Toplam Bakiye', toplam_bakiye, '(Sol)')
-
     if emirleri_al(MARKET_SYMBOL):
         emirleri_iptal_et(MARKET_SYMBOL)
 
-    tüm_sol_satın_al()
+    tüm_wen_satın_al()

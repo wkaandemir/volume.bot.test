@@ -2,3 +2,9 @@ requests~=2.29.0
 cryptography~=41.0.4
 #python -m venv .venv
 #pip install -r requirements.txt
+
+api
+JoNTFQpe+KuTrT2GARWHEwgjpLHdNQK3B8tmnhB9+/c=
+
+secret
+xp6eoV78koBNc5WdQMZ+neEp2bJLevVPwDGYSJ5DuMo=
